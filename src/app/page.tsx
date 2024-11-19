@@ -1,101 +1,162 @@
-import Image from "next/image";
+"use client"
+import { useState,useEffect } from 'react';
+import { Button } from '@headlessui/react'
+// import { useRouter } from 'next/router';
+// import { v4 as uuidv4 } from 'uuid';
+import Loading from '../components/Loading';
+import StepComponent from '../components/StepComponent';
+import { call_api } from '../utils/util';
+// import { GetServerSideProps } from 'next';
+// import { getServerSidePropsUtility } from '../utils/util';
+import { Ingredient, DietaryPreference, Recipe, IngredientDocumentType } from '../types/index'
+import { oldIngredients } from './dymmyData';
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+const steps = ['Choose Ingredients', 'Choose Diet', 'Review and Create Recipes', 'Select Recipes', 'Review and Save Recipes']
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+
+const initialIngridients: Ingredient[] = []
+const initialPreferences: DietaryPreference[] = [];
+const initialRecipes: Recipe[] = [];
+const initialSelectedIds: string[] = [];
+
+function Home({ ingredientList }: { ingredientList: IngredientDocumentType[] }) {
+    const [step, setStep] = useState(0);
+    const [ingredients, setIngredients] = useState(initialIngridients)
+    const [preferences, setPreferences] = useState(initialPreferences)
+    const [generatedRecipes, setGeneratedRecipes] = useState(initialRecipes)
+    const [selectedRecipeIds, setSelectedRecipeIds] = useState(initialSelectedIds)
+    const [isLoading, setIsLoading] = useState(false)
+
+    // const router = useRouter();
+    // const { oldIngredients } = router.query;
+
+    // useEffect(() => {
+    //     if (oldIngredients && Array.isArray(oldIngredients)) {
+    //         setIngredients(oldIngredients.map(i => ({ name: i, quantity: null, id: uuidv4() })))
+    //     }
+    // }, [oldIngredients])
+
+    // Initialize the ingredients state with dummy data
+    useEffect(() => {
+        if (oldIngredients && Array.isArray(oldIngredients)) {
+        setIngredients(oldIngredients.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            id: item.id,
+        })));
+        }
+    }, []);
+
+    const updateStep = (val: number) => {
+        let newStep = step + val
+        if (newStep < 0 || newStep >= steps.length) newStep = 0
+        setStep(newStep)
+    }
+
+    const handleIngredientSubmit = async () => {
+        try {
+            setIsLoading(true);
+            const { recipes, openaiPromptId } = await call_api({
+                address: '/api/generate-recipes',
+                method: 'post',
+                payload: {
+                    ingredients,
+                    dietaryPreferences: preferences,
+                }
+            });
+            let parsedRecipes = JSON.parse(recipes);
+            parsedRecipes = parsedRecipes.map((recipe: Recipe, idx: number) => ({
+                ...recipe,
+                openaiPromptId: `${openaiPromptId}-${idx}` // make unique for client key iteration
+            }))
+            setIsLoading(false)
+            setGeneratedRecipes(parsedRecipes)
+            setStep(step + 1)
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    const handleRecipeSubmit = async (recipes: Recipe[]) => {
+        try {
+            setIsLoading(true);
+            await call_api({ address: '/api/save-recipes', method: 'post', payload: { recipes } });
+            setIsLoading(false)
+            setIngredients(initialIngridients)
+            setPreferences(initialPreferences)
+            setGeneratedRecipes(initialRecipes)
+            setSelectedRecipeIds(initialSelectedIds)
+            setStep(0)
+            // router.push('/Profile');
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    return (
+        <>
+            <div className="sm:mx-auto sm:w-full sm:max-w-sm flex flex-col items-center justify-center">
+                <span className="text-2xl font-bold text-blue-700 bg-blue-100 rounded-lg p-3 mb-5 mt-5 shadow-md">
+                    {steps[step]}
+                </span>
+                <p className="text-black mt-2 font-bold italic text-lg"></p>
+                <div className="flex items-center justify-center">
+                    <div className="w-[400px]  text-white p-4 flex justify-between mt-2">
+                        <Button
+                            type="button"
+                            className="bg-sky-600 text-white rounded-l-md border-r border-gray-100 py-2 hover:bg-sky-500 hover:text-white px-3 data-[disabled]:bg-gray-200"
+                            onClick={() => updateStep(-1)}
+                            disabled={step === 0}
+                        >
+                            <div className="flex flex-row align-middle">
+                                <svg className="w-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd"></path>
+                                </svg>
+                                <p className="ml-2">Prev</p>
+                            </div>
+                        </Button>
+                        <Button
+                            type="button"
+                            className="bg-sky-600 text-white rounded-r-md py-2 border-l border-gray-100 hover:bg-sky-500 hover:text-white px-3 data-[disabled]:bg-gray-200"
+                            onClick={() => updateStep(+1)}
+                            disabled={step === steps.length - 1 || step === 2 && !generatedRecipes.length}
+                        >
+                            <div className="flex flex-row align-middle">
+                                <span className="mr-2">Next</span>
+                                <svg className="w-5 ml-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd"></path>
+                                </svg>
+                            </div>
+                        </Button>
+                    </div>
+                </div>
+            </div>
+            {
+                isLoading ?
+                    <Loading />
+                    :
+                    <StepComponent
+                        step={step}
+                        ingredientList={ingredientList}
+                        ingredients={ingredients}
+                        updateIngredients={(ingredients: Ingredient[]) => setIngredients(ingredients)}
+                        preferences={preferences}
+                        updatePreferences={(preferences: DietaryPreference[]) => setPreferences(preferences)}
+                        editInputs={() => setStep(0)}
+                        handleIngredientSubmit={handleIngredientSubmit}
+                        generatedRecipes={generatedRecipes}
+                        updateSelectedRecipes={(selectedIds) => setSelectedRecipeIds(selectedIds)}
+                        selectedRecipes={selectedRecipeIds}
+                        handleRecipeSubmit={handleRecipeSubmit}
+                    />
+            }
+
+        </>
+    )
 }
+
+// export const getServerSideProps: GetServerSideProps = async (context) => {
+    // return await getServerSidePropsUtility(context, 'api/get-ingredients', 'ingredientList')
+// };
+
+export default Home;
