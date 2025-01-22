@@ -9,7 +9,7 @@ import { call_api } from '../utils/util';
 // import { GetServerSideProps } from 'next';
 // import { getServerSidePropsUtility } from '../utils/util';
 import { Ingredient, DietaryPreference, Recipe, IngredientDocumentType } from '../types/index'
-import { oldIngredients } from './dymmyData';
+import { oldIngredients } from '../data/dymmyData';
 
 const steps = ['Choose Ingredients', 'Choose Diet', 'Review and Create Recipes', 'Select Recipes', 'Review and Save Recipes']
 

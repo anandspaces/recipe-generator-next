@@ -84,3 +84,16 @@ export interface UploadReturnType {
     location: string, 
     uploaded: boolean 
 }
+
+// Define the interface for the Notification model
+export interface NotificationType {
+    _id: string;
+    userId: mongoose.Schema.Types.ObjectId; // Reference to the recipient (owner of the recipe)
+    initiatorId: mongoose.Schema.Types.ObjectId; // Reference to the user who performed the action (e.g., liked the recipe)
+    type: 'like' | 'comment' | 'update'; // Type of notification
+    recipeId: mongoose.Schema.Types.ObjectId; // Reference to the recipe related to the notification
+    message: string; // Message displayed in the notification
+    read: boolean; // Whether the notification has been read
+    createdAt: string; // Auto-generated timestamp
+    updatedAt: string; // Auto-generated timestamp
+}
